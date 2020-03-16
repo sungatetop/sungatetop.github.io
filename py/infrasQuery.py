@@ -70,8 +70,8 @@ def requestData(region,query=query,tag='',ak=ak):
             area=res['area']
             uid=res['uid']
             #过滤掉不是隧道的名称
-            print(len(name)-str(name).index(query)==1)
-            if(len(name)-str(name).index(query)==1):
+            print(len(name)-str(name).index(query)==2)
+            if(len(name)-str(name).index(query)==2):
                 print('找到....')
                 tunnelcount=tunnelcount+1
                 save2db(uid,name,location_lat,location_lng,address,province,city,area)
