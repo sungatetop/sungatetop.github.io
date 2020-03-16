@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>中国隧道地图</title>
+  <style type="text/css">
+    html,body{margin:0px;height:100%;width:100%}
+    .container{width:100%;height:100%}
+  </style>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maptalks/dist/maptalks.css">
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/maptalks/dist/maptalks.min.js"></script>
+  <script type="text/javascript" src="https://unpkg.com/maptalks.markercluster/dist/maptalks.markercluster.min.js"></script>
+</script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script src="https://cdn.bootcss.com/sql.js/0.5.0/js/sql-optimized.js"></script>
+  <script src="./tunnel.js"></script>
+  <body>
+    <div id="map" class="container"></div>
+    <script>
+
+      var map = new maptalks.Map('map', {
+        center: [120, 31.49856],
+        zoom: 14,
+        baseLayer: new maptalks.TileLayer('base', {
+          'urlTemplate' : 'http://{s}.tile.osm.org/{z}/{x}/{y}.png',
+          'subdomains'  : ['a','b','c'],
+          'attribution' :  '&copy; <a target="_blank" href="http://openstreetmap.com">OSM</a>'
+        })
+      });
+      var markers=[];
+      for(var i=0;i<tunnels.length;i++){
+                var position=[tunnels[i].location_lng,tunnels[i].location_lat];
+                var marker = new maptalks.Marker(
+                    position,
+                    {
+                    'properties' : {
+                        'name' : tunnels[i].name
+                    },
+                    symbol : [
+                        {
+                        'markerFile'   : 'images/marker.png',
+                        'markerWidth'  : 28,
+                        'markerHeight' : 40
+                        },
+                        {
+                        'textFaceName' : 'sans-serif',
+                        'textName' : '{name}',
+                        'textSize' : 14,
+                        'textDy'   : 24
+                        }
+                    ]
+                    }
+                ).on('mousedown', onClick);
+                marker.setInfoWindow({
+                'title'     : tunnels[i].name,
+                'content'   :'位于:'+tunnels[i].province+tunnels[i].area+',\n经度：'+tunnels[i].location_lng+'\n纬度:'+tunnels[i].location_lat,
+                'autoPan': true,
+                'width': 300,
+                'minHeight': 120,
+                'custom': false,
+                'autoOpenOn' : 'click',  //set to null if not to open when clicking on marker
+                'autoCloseOn' : 'click'
+            });
+                marker.openInfoWindow();
+                markers.push(marker);
+            }
+        // 点聚合图层
+        var clusterLayer = new maptalks.ClusterLayer('cluster', markers, {
+        'noClusterWithOneMarker' : false,
+        'maxClusterZoom' : 18,
+        //"count" is an internal variable: marker count in the cluster.
+        'symbol': {
+            'markerType' : 'ellipse',
+            'markerFill' : { property:'count', type:'interval', stops: [[0, 'rgb(135, 196, 240)'], [9, '#1bbc9b'], [99, 'rgb(216, 115, 149)']] },
+            'markerFillOpacity' : 0.7,
+            'markerLineOpacity' : 1,
+            'markerLineWidth' : 3,
+            'markerLineColor' : '#fff',
+            'markerWidth' : { property:'count', type:'interval', stops: [[0, 40], [9, 60], [99, 80]] },
+            'markerHeight' : { property:'count', type:'interval', stops: [[0, 40], [9, 60], [99, 80]] }
+        },
+        'drawClusterText': true,
+        'geometryEvents' : true,
+        'single': true
+    });
+    clusterLayer.config('maxClusterRadius',100);
+    clusterLayer.config('maxClusterZoom',12);
+    map.addLayer(clusterLayer);
+
+    map.on('click', function (e) {
+        console.log(clusterLayer.identify(e.coordinate));
+    });
+
+    function onClick(e) {
+        console.log(e.target);
+    }
+    </script>
+  </body>
+</html>
