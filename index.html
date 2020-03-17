@@ -6,6 +6,19 @@
   <style type="text/css">
     html,body{margin:0px;height:100%;width:100%}
     .container{width:100%;height:100%}
+    #contolbar{
+      display: block;
+      position: absolute;
+      margin-top: 20px;
+      margin-left: 20px;
+      background:rgba(106, 185, 250, 0.5);
+      z-index: 20000;
+    }
+    #controlbar input {
+      background-color: rgba(106, 185, 250, 0.5);
+      padding-top: 10px;
+      padding-left: 20px;
+    }
   </style>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maptalks/dist/maptalks.css">
   <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/maptalks/dist/maptalks.min.js"></script>
@@ -15,12 +28,15 @@
 <script src="https://cdn.bootcss.com/sql.js/0.5.0/js/sql-optimized.js"></script>
   <script src="./tunnel.js"></script>
   <body>
+    <div id="contolbar" style="width: 100;height: 800;">
+      <label>按名称查找:</label><input type="text" placeholder="输入名称" name='searchname' onchange="searchbyname(this.value)">
+      <label>按地点查找:</label><input type="text" placeholder="经度"><input type="text" placeholder="纬度">
+    </div>
     <div id="map" class="container"></div>
     <script>
-
       var map = new maptalks.Map('map', {
         center: [120, 31.49856],
-        zoom: 14,
+        zoom: 4,
         baseLayer: new maptalks.TileLayer('base', {
           'urlTemplate' : 'http://{s}.tile.osm.org/{z}/{x}/{y}.png',
           'subdomains'  : ['a','b','c'],
@@ -51,17 +67,6 @@
                     ]
                     }
                 ).on('mousedown', onClick);
-                marker.setInfoWindow({
-                'title'     : tunnels[i].name,
-                'content'   :'位于:'+tunnels[i].province+tunnels[i].area+',\n经度：'+tunnels[i].location_lng+'\n纬度:'+tunnels[i].location_lat,
-                'autoPan': true,
-                'width': 300,
-                'minHeight': 120,
-                'custom': false,
-                'autoOpenOn' : 'click',  //set to null if not to open when clicking on marker
-                'autoCloseOn' : 'click'
-            });
-                marker.openInfoWindow();
                 markers.push(marker);
             }
         // 点聚合图层
@@ -90,10 +95,40 @@
     map.on('click', function (e) {
         console.log(clusterLayer.identify(e.coordinate));
     });
-
     function onClick(e) {
-        console.log(e.target);
+        console.log('点击',e.target);
+        var tunnel=searchbynamelocation(e.target.properties.name,e.target._coordinates.y,e.target._coordinates.x);
+        if(tunnel==undefined){
+          alert('抱歉，未找该隧道！');
+        }else{
+          alert(tunnel.name+':位于'+tunnel.province+tunnel.city+tunnel.area+'\n'+'经度:'+tunnel.location_lng+',纬度:'+tunnel.location_lat)
+        }
+      }
+
+    function searchbyname(name){
+      var t=tunnels;
+      console.log('searching',name);
+      var site=t.find((el)=> el.name==name);
+      console.log(site)
+      changeView(site.location_lat,site.location_lng)
+      return site;
     }
+    function searchbynamelocation(name,location_lat,location_lng){
+      var t=tunnels;
+      console.log('searching',name,location_lat,location_lng)
+      var site=t.find((el)=> el.name==name ||(el.location_lat==location_lat && el.location_lng==location_lng))
+      return site;
+    }
+    
+    function changeView(location_lat,location_lng) {
+        map.animateTo({
+          center: [location_lng, location_lat],
+          zoom: 14,
+          pitch: 0,
+          bearing: 20
+        }, {
+          duration: 6000
+        });}
     </script>
   </body>
 </html>
