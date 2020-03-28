@@ -2,11 +2,11 @@
 <html>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>中国隧道地图</title>
+  <title>中国桥隧地图</title>
   <style type="text/css">
     html,body{margin:0px;height:100%;width:100%}
     .container{width:100%;height:100%}
-    #contolbar{
+    #controlbar{
       display: block;
       position: absolute;
       margin-top: 20px;
@@ -19,22 +19,116 @@
       padding-top: 10px;
       padding-left: 20px;
     }
+    #echart-container{
+      padding-top: 10px;
+      background:rgba(106, 185, 250, 0.5);
+      z-index: 20000;
+    }
   </style>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maptalks/dist/maptalks.css">
-  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/maptalks/dist/maptalks.min.js"></script>
-  <script type="text/javascript" src="https://unpkg.com/maptalks.markercluster/dist/maptalks.markercluster.min.js"></script>
+<link href="https://cdn.staticfile.org/twitter-bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://cdn.staticfile.org/jquery/2.1.1/jquery.min.js"></script>
+<script src="https://cdn.staticfile.org/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maptalks/dist/maptalks.css">
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/maptalks/dist/maptalks.min.js"></script>
+<script type="text/javascript" src="https://unpkg.com/maptalks.markercluster/dist/maptalks.markercluster.min.js"></script>
 </script>
-<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-<script src="https://cdn.bootcss.com/sql.js/0.5.0/js/sql-optimized.js"></script>
-  <script src="./tunnel.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/echarts-gl/dist/echarts-gl.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/echarts-stat/dist/ecStat.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/echarts/dist/extension/dataTool.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/echarts/map/js/china.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/echarts/map/js/world.js"></script>
+<script type="text/javascript" src="https://api.map.baidu.com/api?v=2.0&ak=74fj6e22IrE10vksc5n3yDnxCH4TtT6c"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/echarts/dist/extension/bmap.min.js"></script>
+<script src="./tunnel.js"></script>
+<script src="./bridge.js"></script>
   <body>
-    <div id="contolbar" style="width: 100;height: 800;">
-      <label>按名称查找:</label><input type="text" placeholder="输入名称" name='searchname' onchange="searchbyname(this.value)">
-      <label>按地点查找:</label><input type="text" placeholder="经度"><input type="text" placeholder="纬度">
+    <div id="controlbar" style="width: 400px;height: 150px;">
+      <label id='info'>当前显示为隧道地图</label>
+      <br>
+      <div class="btn-group" role="group" aria-label="...">
+        <button type="button" class="btn btn-default" onclick="changetoBridge()">桥梁</button>
+        <button type="button" class="btn btn-default" onclick="changetoTunnel()">隧道</button>
+        <button type="button" class="btn btn-default" onclick="changetoOther()">其它</button>
+      </div>
+      <div class="input-group">
+        <span class="input-group-addon" id="basic-addon1">按名称查询</span>
+        <input type="text" class="form-control" placeholder="输入名称" aria-describedby="basic-addon1" name='searchname' onchange="searchbyname(this.value)">
+      </div>
+      <div class="input-group">
+        <span class="input-group-addon" id="basic-addon1">经度</span>
+        <input type="text" class="form-control" placeholder="经度" aria-describedby="basic-addon1" id='location_lat' onchange="searchbylocation()">
+      </div>
+      <div class="input-group">
+        <span class="input-group-addon" id="basic-addon1">纬度</span>
+        <input type="text" class="form-control" placeholder="纬度" aria-describedby="basic-addon1" id='location_lng' onchange="searchbylocation()">
+      </div>
+      <div id = 'echart-container' style="width: 400px;height: 300px;"></div>
     </div>
     <div id="map" class="container"></div>
     <script>
-      var map = new maptalks.Map('map', {
+var dom = document.getElementById("echart-container");
+var myChart = echarts.init(dom);
+var dataAxis =['北京市', '天津市', '河北省', '山西省', '内蒙古自治区', '辽宁省', '吉林省', '黑龙江省', '上海市', '江苏省', '浙江省', '安徽省', '福建省', '江西省', '山东省', '河南省', '湖北省', '湖南省', '广东省', '广西壮族自治区', '海南省', '重庆市', '四川省', '贵州省', '云南省', '西藏自治区', '陕西省', '甘肃省', '青海省', '宁夏回族自治区', '新疆维吾尔自治区', '香港特别行政区', '澳门特别行政区', '台湾省'];
+var bridgedata = [89, 98, 434, 298, 124, 350, 142, 145, 62, 609, 469, 497, 295, 417, 489, 476, 396, 493, 511, 166, 29, 142, 783, 368, 234, 37, 195, 123, 56, 29, 68, 0, 0, 45];
+var tunneldata=[42, 8, 172, 311, 31, 157, 97, 4, 12, 112, 532, 98, 376, 212, 98, 161, 302, 357, 424, 302, 15, 256, 625, 613, 485, 35, 346, 165, 98, 13, 32, 0, 0, 0];
+var data=tunneldata;
+var titletext='隧道数量统计'
+var app = {};
+option = null;
+option = {
+    title:{
+        text:titletext,
+        subtext:'单位:(座)',
+        x:'center',
+        y:'top',
+        textAlign:'left'
+    },
+    color: ['#3398DB'],
+    tooltip: {
+        trigger: 'axis',
+        axisPointer: {            // 坐标轴指示器，坐标轴触发有效
+            type: 'shadow'        // 默认为直线，可选为：'line' | 'shadow'
+        }
+    },
+    grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        containLabel: true
+    },
+    xAxis: [
+        {
+            type: 'category',
+            data: dataAxis,
+            axisTick: {
+                alignWithLabel: false
+            },
+            axisLabel:{
+                interval: 0,
+                rotate:90
+            }
+        }
+    ],
+    yAxis: [
+        {
+            type: 'value'
+        }
+    ],
+    series: [
+        {
+            name: "数量：",
+            type: 'bar',
+            barWidth: '60%',
+            data: data
+        }
+    ]
+};
+  if (option && typeof option === "object") {
+      myChart.setOption(option, true);
+  }
+//地图
+var map = new maptalks.Map('map', {
         center: [120, 31.49856],
         zoom: 4,
         baseLayer: new maptalks.TileLayer('base', {
@@ -43,14 +137,18 @@
           'attribution' :  '&copy; <a target="_blank" href="http://openstreetmap.com">OSM</a>'
         })
       });
-      var markers=[];
-      for(var i=0;i<tunnels.length;i++){
-                var position=[tunnels[i].location_lng,tunnels[i].location_lat];
+      var markersforcluster=[];
+      var infras=tunnels;
+      function loadMarker(m){
+        var markers=[];
+        console.log(m)
+        for(var i=0;i<m.length;i++){
+                var position=[m[i].location_lng,m[i].location_lat];
                 var marker = new maptalks.Marker(
                     position,
                     {
                     'properties' : {
-                        'name' : tunnels[i].name
+                        'name' : m[i].name
                     },
                     symbol : [
                         {
@@ -68,9 +166,11 @@
                     }
                 ).on('mousedown', onClick);
                 markers.push(marker);
-            }
-        // 点聚合图层
-        var clusterLayer = new maptalks.ClusterLayer('cluster', markers, {
+            };
+        return markers;
+      }
+      function defLayer(name,markers){
+        var clusterLayer = new maptalks.ClusterLayer(name, markers, {
         'noClusterWithOneMarker' : false,
         'maxClusterZoom' : 18,
         //"count" is an internal variable: marker count in the cluster.
@@ -87,36 +187,103 @@
         'drawClusterText': true,
         'geometryEvents' : true,
         'single': true
-    });
-    clusterLayer.config('maxClusterRadius',100);
-    clusterLayer.config('maxClusterZoom',12);
-    map.addLayer(clusterLayer);
+      });
+      clusterLayer.config('maxClusterRadius',100);
+      clusterLayer.config('maxClusterZoom',12);
+      return clusterLayer;
+      }
+      var tunnelmarker=loadMarker(tunnels);
+      var bridgemarker=loadMarker(bridges);
+      var tunnelclusterLayer=defLayer('tunnel',tunnelmarker);
+      var bridgeclusterLayer=defLayer('bridge',bridgemarker);
+      map.addLayer(tunnelclusterLayer);
+    function add(clusterLayer) {
+        map.addLayer(clusterLayer);
+    };
 
-    map.on('click', function (e) {
-        console.log(clusterLayer.identify(e.coordinate));
-    });
-    function onClick(e) {
-        console.log('点击',e.target);
-        var tunnel=searchbynamelocation(e.target.properties.name,e.target._coordinates.y,e.target._coordinates.x);
-        if(tunnel==undefined){
-          alert('抱歉，未找该隧道！');
+    function remove(clusterLayer) {
+        map.removeLayer(clusterLayer);
+      };
+      var t=false;
+      var b=false;
+      function changetoBridge(){
+        infras=bridges;
+        if(b){
+          remove(tunnelclusterLayer);
+          add(bridgeclusterLayer);
+          document.getElementById('info').innerText='当前显示为桥梁地图'
+          option.title.text='桥梁数量统计';
+          option.series[0].data=bridgedata;
+          myChart.setOption(option, true);
+          b=!b;
         }else{
-          alert(tunnel.name+':位于'+tunnel.province+tunnel.city+tunnel.area+'\n'+'经度:'+tunnel.location_lng+',纬度:'+tunnel.location_lat)
+          remove(bridgeclusterLayer);
+          b=!b;
         }
       }
-
+      function changetoTunnel(){
+        infras=tunnels;
+        if(t){
+          remove(bridgeclusterLayer)
+          add(tunnelclusterLayer);
+          document.getElementById('info').innerText='当前显示为隧道地图'
+          option.title.text='隧道数量统计';
+          option.series[0].data=tunneldata;
+          myChart.setOption(option, true);
+          t=!t;
+        }else{
+          remove(tunnelclusterLayer);
+          t=!t;
+        }
+      }
+      function changetoOther(){
+        alert('暂时没有！')
+      }
+    // map.on('click', function (e) {
+    //     console.log(clusterLayer.identify(e.coordinate));
+    // });
+    function onClick(e) {
+        console.log('点击',e.target);
+        var obj=searchbynamelocation(e.target.properties.name,e.target._coordinates.y,e.target._coordinates.x);
+        if(obj==undefined){
+          alert('抱歉，未找咦！');
+        }else{
+          alert(obj.name+':位于'+obj.province+obj.city+obj.area+'\n'+'经度:'+obj.location_lng+',纬度:'+obj.location_lat)
+        }
+      }
     function searchbyname(name){
-      var t=tunnels;
       console.log('searching',name);
-      var site=t.find((el)=> el.name==name);
+      var site=infras.find((el)=> el.name==name || el.name.substring(0,el.name.length-2)==name);
       console.log(site)
+      if(site==undefined){
+        alert('抱歉，未找到咦！')
+        return;
+      }
       changeView(site.location_lat,site.location_lng)
       return site;
     }
+    function searchbylocation(){
+      var location_lat=document.getElementById('location_lat').value;
+      var location_lng=document.getElementById('location_lng').value;
+      if(location_lng == '' || location_lng == undefined ){alert('未输入纬度值！'); return;};
+      if(location_lat == '' || location_lat == undefined){alert('未输入经度值！'); return;};
+      if(location_lat >123 || location_lat<80){ alert('经度范围为80~123');return;};
+      if(location_lng > 70 || location_lng<20){alert('纬度范围为20~70');return;};
+
+      console.log('location_lat',location_lat);
+      console.log('location_lng',location_lng);
+      map.animateTo({
+          center: [location_lat,location_lng],
+          zoom: 14,
+          pitch: 0,
+          bearing: 20
+        }, {
+          duration: 6000
+        });
+    }
     function searchbynamelocation(name,location_lat,location_lng){
-      var t=tunnels;
       console.log('searching',name,location_lat,location_lng)
-      var site=t.find((el)=> el.name==name ||(el.location_lat==location_lat && el.location_lng==location_lng))
+      var site=infras.find((el)=> el.name==name ||(el.location_lat==location_lat && el.location_lng==location_lng))
       return site;
     }
     
